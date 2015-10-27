@@ -55,7 +55,7 @@ public class Display extends Visualizer {
    }
 
    public Camera displayCamera;
-   public double scrollSpeed = 10000;
+   public double scrollSpeed = 1000;
    private Vector cameraSpeed = new Vector(0, 0, 0);
    private int mousex, mousey;
    private boolean mouseDown = false;
@@ -113,7 +113,6 @@ public class Display extends Visualizer {
    public KeyAdapter ka = new KeyAdapter() {
       @Override
       public void keyPressed(KeyEvent e) {
-         System.out.println(e.getKeyCode());
          switch (e.getKeyCode()) {
          case 37: // right
             //go right
@@ -191,6 +190,7 @@ public class Display extends Visualizer {
 
    @Override
    protected void drawBackground(Graphics g) {
+      
       planets = new ArrayList<>();
       fleets = new ArrayList<>();
    }

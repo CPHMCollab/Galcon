@@ -7,28 +7,47 @@ import galaxy.Player;
 import java.awt.Color;
 import java.util.List;
 
-public class ValueDefenderAI extends Player {
-   private static int MIN_DEFENSE = 5;
+import ais.PlayerUtils.Location;
+
+public class DistanceValueDefenderAI extends Player {
+   /* defeats aggressively tuned value defender
+   private static final int MIN_AGGRESSIVE_DEFENSE = 50;
+   private static final int MIN_DEFENSIVE_DEFENSE = 2;
+   private static final double BASE_DISTANCE_FACTOR = 1000;
+   private static final double DISTANCE_WEIGHTING = 0.3;
+   private static final double AGGRESSION = 1.2;
+   //*/
    
-   public ValueDefenderAI() {
+   //* defeats value defender beater
+   private static final int MIN_AGGRESSIVE_DEFENSE = 10;
+   private static final int MIN_DEFENSIVE_DEFENSE = 0;
+   private static final double BASE_DISTANCE_FACTOR = 10;
+   private static final double DISTANCE_WEIGHTING = 1;
+   private static final double AGGRESSION = 0.8;
+   //*/
+   
+   public DistanceValueDefenderAI() {
       super(new Color(40,0,0), "Value Defender AI");
    }
    
-   public ValueDefenderAI(Color c) {
+   public DistanceValueDefenderAI(Color c) {
       super(c, "Value Defender AI");
    }
 
-   public double getValue(Planet p) {
-      return (p.getColor().equals(Color.GRAY) ? 1000.0 : 2000.0) / p.PRODUCTION_TIME / (100 + p.getNumUnits());
+   public double getValue(Planet p, Location averageLocation, double variance) {
+      double distanceFactor = (variance + BASE_DISTANCE_FACTOR) / averageLocation.distance(p);
+      return (p.getColor().equals(Color.GRAY) ? 1.0 : AGGRESSION) * Math.pow(distanceFactor, DISTANCE_WEIGHTING) / p.PRODUCTION_TIME / (100 + p.getNumUnits());
    }
    
    @Override
    protected void turn() {
       List<Planet> myPlanets = PlayerUtils.getPlanetsOwnedByPlayer(planets, this);
+      if (myPlanets.size() == 0) {
+         return;
+      }
       List<Planet> otherPlanets = PlayerUtils.getPlanetsNotOwnedByPlayer(planets, this);
       
       boolean defending = false;
-      
       Planet target = null;
       int needed = 0;
       for (Planet p : myPlanets) {
@@ -36,18 +55,21 @@ public class ValueDefenderAI extends Player {
                PlayerUtils.getOpponentsIncomingFleetCount(p, fleets, this) -
                p.getNumUnits() -
                PlayerUtils.getPlayersIncomingFleetCount(p, fleets, this) +
-               MIN_DEFENSE;
+               MIN_DEFENSIVE_DEFENSE;
          if (needed > 0) {
-            defending = true;
             target = p;
+            defending = true;
             break;
          }
       }
       
+      Location average = Location.center(myPlanets);
+      double variance = Location.variance(myPlanets);
+      
       if (target == null) {
          double best = Double.MIN_VALUE;
          for (Planet p : otherPlanets) {
-            double value = getValue(p);
+            double value = getValue(p, average, variance);
             if (value > best) {
                if (PlayerUtils.getPlayersIncomingFleetCount(p, fleets, this) == 0) {
                   target = p;
@@ -55,13 +77,16 @@ public class ValueDefenderAI extends Player {
                }
             }
          }
+         if (target == null) {
+            return;
+         }
          needed = target.getNumUnits() + 20;
       }
       
       int available = 0;
       for (Planet p : myPlanets) {
          if (p != target) {
-            int contribution = p.getNumUnits() - PlayerUtils.getIncomingFleetCount(p, fleets) - MIN_DEFENSE;
+            int contribution = p.getNumUnits() - PlayerUtils.getIncomingFleetCount(p, fleets) - (defending ? MIN_DEFENSIVE_DEFENSE : MIN_AGGRESSIVE_DEFENSE);
             
             if (available + contribution > needed) {
                addAction(p, target, needed - available);

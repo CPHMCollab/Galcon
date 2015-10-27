@@ -21,15 +21,15 @@ public class ValuePlanetsAI extends Player {
    
    @Override
    protected void turn() {
-      List<Planet> myPlanets = PlanetUtils.getPlanetsOwnedByPlayer(planets, this);
-      List<Planet> otherPlanets = PlanetUtils.getPlanetsNotOwnedByPlayer(planets, this);
+      List<Planet> myPlanets = PlayerUtils.getPlanetsOwnedByPlayer(planets, this);
+      List<Planet> otherPlanets = PlayerUtils.getPlanetsNotOwnedByPlayer(planets, this);
       
       Planet target = null;
       double best = Double.MIN_VALUE;
       for (Planet p : otherPlanets) {
          double value = getValue(p);
          if (value > best) {
-            if (PlanetUtils.getPlayersIncomingFleetCount(p, fleets, this) == 0) {
+            if (PlayerUtils.getPlayersIncomingFleetCount(p, fleets, this) == 0) {
                target = p;
                best = value;
             }
@@ -39,7 +39,7 @@ public class ValuePlanetsAI extends Player {
       int needed = target.getNumUnits() + 20;
       int available = 0;
       for (Planet p : myPlanets) {
-         int contribution = p.getNumUnits() - PlanetUtils.getIncomingFleetCount(p, fleets) - MIN_DEFENSE;
+         int contribution = p.getNumUnits() - PlayerUtils.getIncomingFleetCount(p, fleets) - MIN_DEFENSE;
          
          if (available + contribution > needed) {
             addAction(p, target, needed - available);

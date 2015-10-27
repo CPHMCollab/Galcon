@@ -24,7 +24,7 @@ import javax.swing.JFormattedTextField;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
-import ais.PlanetUtils;
+import ais.PlayerUtils;
 
 public class MeatSackDisplay extends JPanel {
    private JFrame myframe;
@@ -39,6 +39,7 @@ public class MeatSackDisplay extends JPanel {
    private EButton sendUnitsButton;
    
    private static final double SCALE = 0.4;
+   private static final double PLANET_SCALE = 1;
    private static final double SELECTION_AREA_SCALE = 3;
    
    private static enum State {
@@ -207,10 +208,10 @@ public class MeatSackDisplay extends JPanel {
       g.setStroke(new BasicStroke(3.0f));
       g.setColor(Color.WHITE);
       g.drawOval(
-            (int) (p.getCoords()[0] * SCALE - p.RADIUS * SCALE - 5), 
-            (int) (p.getCoords()[1] * SCALE - p.RADIUS * SCALE - 5), 
-            (int) (p.RADIUS * 2 * SCALE + 10), 
-            (int) (p.RADIUS * 2 * SCALE + 10));
+            (int) (p.getCoords()[0] * SCALE - p.RADIUS * PLANET_SCALE * SCALE - 5), 
+            (int) (p.getCoords()[1] * SCALE - p.RADIUS * PLANET_SCALE * SCALE - 5), 
+            (int) (p.RADIUS * PLANET_SCALE * 2 * SCALE + 10), 
+            (int) (p.RADIUS * PLANET_SCALE * 2 * SCALE + 10));
    }
    
    private void drawPointer(Planet from, double xTo, double yTo, Graphics2D g) {
@@ -221,10 +222,10 @@ public class MeatSackDisplay extends JPanel {
       double diffx = x - xTo;
       double diffy = y - yTo;
       double factor = Math.sqrt(diffx * diffx + diffy * diffy);
-      double fromx1 = x + diffy * (5 + from.RADIUS * SCALE) / factor;
-      double fromx2 = x - diffy * (5 + from.RADIUS * SCALE) / factor;
-      double fromy1 = y - diffx * (5 + from.RADIUS * SCALE) / factor;
-      double fromy2 = y + diffx * (5 + from.RADIUS * SCALE) / factor;
+      double fromx1 = x + diffy * (5 + from.RADIUS * PLANET_SCALE * SCALE) / factor;
+      double fromx2 = x - diffy * (5 + from.RADIUS * PLANET_SCALE * SCALE) / factor;
+      double fromy1 = y - diffx * (5 + from.RADIUS * PLANET_SCALE * SCALE) / factor;
+      double fromy2 = y + diffx * (5 + from.RADIUS * PLANET_SCALE * SCALE) / factor;
       g.drawLine((int) (fromx1), (int) (fromy1), (int) xTo, (int) yTo);
       g.drawLine((int) (fromx2), (int) (fromy2), (int) xTo, (int) yTo);
    }
@@ -245,10 +246,10 @@ public class MeatSackDisplay extends JPanel {
       for (Planet p : player.getPlanets()) {
          g.setColor(p.getColor());
          g.fillOval(
-               (int) ((p.getCoords()[0] - p.RADIUS) * SCALE), 
-               (int) ((p.getCoords()[1] -  p.RADIUS) * SCALE), 
-               (int) (p.RADIUS * 2 * SCALE), 
-               (int) (p.RADIUS * 2 * SCALE));
+               (int) ((p.getCoords()[0] - p.RADIUS * PLANET_SCALE) * SCALE), 
+               (int) ((p.getCoords()[1] -  p.RADIUS * PLANET_SCALE) * SCALE), 
+               (int) (p.RADIUS * PLANET_SCALE * 2 * SCALE), 
+               (int) (p.RADIUS * PLANET_SCALE * 2 * SCALE));
       }
    }
    
@@ -263,8 +264,8 @@ public class MeatSackDisplay extends JPanel {
          double planetY = p.getCoords()[1];
          double distance = Math.sqrt((x - planetX) * (x - planetX) + (y - planetY) * (y - planetY));
          
-         if (distance < p.RADIUS * SELECTION_AREA_SCALE) {
-            double ratio = distance / p.RADIUS;
+         if (distance < p.RADIUS * PLANET_SCALE * SELECTION_AREA_SCALE) {
+            double ratio = distance / (p.RADIUS * PLANET_SCALE);
             if (ratio < best) {
                best = ratio;
                rtn = p;
