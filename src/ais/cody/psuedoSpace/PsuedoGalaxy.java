@@ -39,16 +39,19 @@ public class PsuedoGalaxy {
 	
 	public void advance(int time, ArrayList<PsuedoAction> psuedoActions) {
 		ArrayList<PsuedoFleet> updatedFleets = new ArrayList<PsuedoFleet>();
-		
+
 		for (PsuedoPlanet psuedoPlanet : psuedoPlanets)
 			psuedoPlanet.advance(time);
+		
+		for (PsuedoAction psuedoAction : psuedoActions) 
+			psuedoFleets.add(psuedoAction.act());
+		
 		for (PsuedoFleet psuedoFleet : psuedoFleets)
 			psuedoFleet.advance(time);
+		
 		for (PsuedoFleet psuedoFleet : psuedoFleets)
 			if (psuedoFleet.turnsLeft > 0)
 				updatedFleets.add(psuedoFleet);
-		for (PsuedoAction psuedoAction : psuedoActions) 
-			updatedFleets.add(psuedoAction.act());
 		
 		psuedoFleets = updatedFleets;
 		
@@ -71,6 +74,33 @@ public class PsuedoGalaxy {
 				enemyPlanets.add(psuedoPlanet);
 		
 		return enemyPlanets;
+	}
+	
+	public ArrayList<PsuedoPlanet> neutralPlanets() {
+		ArrayList<PsuedoPlanet> neutralPlanets = new ArrayList<PsuedoPlanet>();
+		for (PsuedoPlanet psuedoPlanet : psuedoPlanets)
+			if (psuedoPlanet.neutral == true) 
+				neutralPlanets.add(psuedoPlanet);
+		
+		return neutralPlanets;
+	}
+	
+	public ArrayList<PsuedoFleet> myFleets() {
+		ArrayList<PsuedoFleet> myFleets = new ArrayList<PsuedoFleet>();
+		for (PsuedoFleet psuedoFleet : psuedoFleets)
+			if (psuedoFleet.mine()) 
+				myFleets.add(psuedoFleet);
+		
+		return myFleets;
+	}
+	
+	public ArrayList<PsuedoFleet> enemyFleets() {
+		ArrayList<PsuedoFleet> enemyFleets = new ArrayList<PsuedoFleet>();
+		for (PsuedoFleet psuedoFleet : psuedoFleets)
+			if (psuedoFleet.enemy()) 
+				enemyFleets.add(psuedoFleet);
+		
+		return enemyFleets;
 	}
 	
 	public int psuedoPlanetStrength(PsuedoPlanet psuedoPlanet) {
@@ -134,7 +164,7 @@ public class PsuedoGalaxy {
 	public double health(double productionValue, double spreadValue) {
 		int health = 0;
 		for (PsuedoPlanet psuedoPlanet : psuedoPlanets)
-			if (psuedoPlanet.neutral == 0) {
+			if (psuedoPlanet.neutral == false) {
 				health += psuedoPlanetStrength(psuedoPlanet);
 				if (psuedoPlanet.mine()) 
 					health -= psuedoPlanet.productionFrequency * productionValue;
@@ -153,11 +183,20 @@ public class PsuedoGalaxy {
 	
 	public String toString() {
 		String str = "PsuedoGalaxy: \n";
-		str += "   PsuedoPlanets: \n";
-		for (PsuedoPlanet psuedoPlanet : psuedoPlanets)
+		str += "   Neutral Planets: \n";
+		for (PsuedoPlanet psuedoPlanet : neutralPlanets())
 			str += "      " + psuedoPlanet.toString() + "\n";
-		str += "   PsuedoFleets: \n";
-		for (PsuedoFleet psuedoFleet : psuedoFleets)
+		str += "   My Planets: \n";
+		for (PsuedoPlanet psuedoPlanet : myPlanets())
+			str += "      " + psuedoPlanet.toString() + "\n";
+		str += "   Enemy Planets: \n";
+		for (PsuedoPlanet psuedoPlanet : enemyPlanets())
+			str += "      " + psuedoPlanet.toString() + "\n";
+		str += "   My Fleets: \n";
+		for (PsuedoFleet psuedoFleet : myFleets())
+			str += "      " + psuedoFleet.toString() + "\n";
+		str += "   Enemy Fleets: \n";
+		for (PsuedoFleet psuedoFleet : enemyFleets())
 			str += "      " + psuedoFleet.toString() + "\n";
 		return str;
 	}

@@ -15,10 +15,11 @@ import ais.cody.psuedoSpace.PsuedoGalaxy;
 public class TheGeneral extends Player {
 	private static final double FUTURE_COEFFICIENT = 1;
 	private static final double DISTANCE_COEFFICIENT = .3;
-	private static final int TIME_TO_PREDICT = 5000;
-	private static final int PREDICTION_INCREMENT = 100;
+	private static final int TIME_TO_PREDICT = 500;
+	private static final int PREDICTION_INCREMENT = 10;
 	private static final double PRODUCTION_VALUE = 2;
 	private static final double SPREAD_VALUE = 0;
+	private int turn;
 	private PsuedoGalaxy psuedoGalaxy;
 	private ArrayList<Move> potentialMoves;
 	
@@ -29,15 +30,17 @@ public class TheGeneral extends Player {
    
    @Override
    protected void turn() {
+	  psuedoGalaxy = new PsuedoGalaxy(planets, fleets, this);
+     
+      //findBestAction(psuedoGalaxy).commit();
       
-      psuedoGalaxy = new PsuedoGalaxy(planets, fleets, this);
-      //System.out.println(psuedoGalaxy);
       findBestActions(psuedoGalaxy);
       if (potentialMoves.size() > 0) {
     	  potentialMoves.get(0).commit();
     	  //System.out.println("Picked move: " + potentialMoves.get(0));
       }
       
+      turn++;
    }
    
    private void findBestActions(PsuedoGalaxy psuedoGalaxy) {
@@ -118,11 +121,11 @@ public class TheGeneral extends Player {
 			  invalidMoves.add(potentialMove);
 		  else {
 			  potentialMove.evaluate();
-			  if (potentialMove.value > currentValue) {
-				  invalidMoves.add(potentialMove);
+//			  if (potentialMove.value > currentValue) {
+//				  invalidMoves.add(potentialMove);
 //				  if (potentialMove.equals(potentialMoves.get(0)))
 //					  System.out.println("found bad move: " + (currentValue - potentialMove.value) + "\n   " + potentialMove);
-			  }
+//			  }
 		  }
 			  
 	  }
@@ -162,6 +165,7 @@ public class TheGeneral extends Player {
 		  if (cost >= 0 && weightedCost < least) {
 			  target = to;
 			  least = weightedCost;
+			  //System.out.println("Found target " + least);
 		  }
 	  }
 	  
@@ -169,6 +173,7 @@ public class TheGeneral extends Player {
 	  // determine who should send units
 	  if (target != null && least != Double.MAX_VALUE) {
 		  move = new Move();
+		  //System.out.println("Found target ");
 		  
 	      targetCost = costOfPlanet(target);
     	  for (PsuedoPlanet from : psuedoGalaxy.myPlanets()) {
@@ -226,7 +231,7 @@ public class TheGeneral extends Player {
 		  weightedCost = cost;
 		  distance = to.distanceTo(Vector.getCoords(psuedoGalaxy.enemyHeart));
 		  weightedCost -= DISTANCE_COEFFICIENT * distance;
-		  weightedCost -= (FUTURE_COEFFICIENT * to.productionFrequency);
+		  weightedCost += (FUTURE_COEFFICIENT * to.productionFrequency);
 		  if (cost <= 0 && weightedCost > max) {
 			  target = to;
 			  max = weightedCost;
@@ -238,7 +243,7 @@ public class TheGeneral extends Player {
 	  if (target != null && max != Double.MIN_VALUE) {
 		  move = new Move();
 		  
-	      targetCost = -costOfPlanet(target);
+	      targetCost = -costOfPlanetEnemy(target);
     	  for (PsuedoPlanet from : psuedoGalaxy.enemyPlanets()) {
     		  if (psuedoGalaxy.psuedoPlanetStrength(from) > 1)
     			  attackers.add(from);
@@ -252,7 +257,7 @@ public class TheGeneral extends Player {
 	    		  i = 0;
 		    	  for (PsuedoPlanet from : attackers) {
 		    		  strength = psuedoGalaxy.psuedoPlanetStrength(from);
-		    		  if (-strength - unitsToSend[i] > 2) {
+		    		  if (strength - unitsToSend[i] > 2) {
 		    			  unitsToSend[i]++;
 		    			  totalToSend++;
 		    			  canAttack = true;
@@ -263,12 +268,18 @@ public class TheGeneral extends Player {
 			  
 			  if (totalToSend > targetCost) {
 	    		  i = 0;
-	    		  for (PsuedoPlanet from : attackers)
+	    		  for (PsuedoPlanet from : attackers) 
 	    			  move.addPsuedoAction(new PsuedoAction(from, target, unitsToSend[i++]));
+	    		  move.unitsSent = totalToSend;
+	    		  
+//	    		  if (turn == 0) {
+//	    			  System.out.println("Picked Enemy Move: \n" + move);
+//	    			  System.out.println("Total: " + totalToSend + " target cost: " + targetCost);
+//	    		  }
 			  }
 		  }
 	  }
-	  
+		  
 	  return move;
    }   
 
@@ -279,7 +290,7 @@ public class TheGeneral extends Player {
 	   
 	   timeCost = (target.productionFrequency * (target.distanceTo(Vector.getCoords(psuedoGalaxy.heart)) / Fleet.SPEED)) + 1;
 	   
-	   if (target.neutral == 1) {
+	   if (target.neutral == true) {
 		   cost = psuedoGalaxy.psuedoPlanetStrength(target) + 1;
 	   }
 	   else if (target.mine()) {
@@ -298,7 +309,7 @@ public class TheGeneral extends Player {
 	   
 	   timeCost = -(target.productionFrequency * (target.distanceTo(Vector.getCoords(psuedoGalaxy.enemyHeart)) / Fleet.SPEED)) - 1;
 	   
-	   if (target.neutral == 1) {
+	   if (target.neutral == true) {
 		   cost = psuedoGalaxy.psuedoPlanetStrength(target) - 1;
 	   }
 	   else if (target.enemy()) {
@@ -345,6 +356,9 @@ public class TheGeneral extends Player {
 		   value = 0;
 		   
 		   myMove = this;
+//
+//		      if (turn == 0)
+//		    	  System.out.println("BEFORE\n" + model);
 		   
 		   for (int i = 0; i < TIME_TO_PREDICT; i += PREDICTION_INCREMENT) {
 			   combinedActions = new ArrayList<PsuedoAction>();
@@ -356,9 +370,22 @@ public class TheGeneral extends Player {
 				   combinedActions.addAll(enemyMove.psuedoActions);
 			   
 			   model.advance(PREDICTION_INCREMENT, combinedActions);
+			   
+//			   if (i == 0 && turn == 0)
+//				   if (myMove != null)
+//					   System.out.println("My Move:\n" + myMove);
+//			   
 			   myMove = findBestAction(model);
+			   
+//			   if (i == 0 && turn == 0)
+//				   if (enemyMove != null)
+//					   System.out.println("Enemy Move:\n" + enemyMove);
+//			   
+//			   if (i == 100 && turn == 0)
+//				   System.out.println("AFTER:\n" + model);
+			   
 		   }
-		   
+
 		   value = model.health(PRODUCTION_VALUE, SPREAD_VALUE);
 	   }
 	   
@@ -375,7 +402,18 @@ public class TheGeneral extends Player {
 		}
 		
 		public String toString() {
-			return "Send " + unitsSent + " units to planet with " + to.strength + " units, for value of " + value ; 
+			String str;
+			try {
+				str = "Send " + unitsSent + " units to planet with " + to.strength + " units, for value of " + value ; 
+				str += "\n   ";
+				for (PsuedoAction psuedoAction : psuedoActions) {
+					str += psuedoAction.toString() + "\n   ";
+				}
+			}
+			catch (Exception ex) {
+				str = "Empty Move";
+			}
+			return str;
 		}
    }
    

@@ -32,14 +32,18 @@ public class PsuedoFleet {
 		turnsLeft = psuedoFleet.turnsLeft;
 	}
 	
+	public boolean mine() {
+		return strength < 0;
+	}
+	
+	public boolean enemy() {
+		return strength > 0;
+	}
+	
 	public void advance(int time) {
 		turnsLeft -= time;
 		if (turnsLeft <= 0) 
 			target.fleetArrives(strength);
-	}
-	
-	public boolean mine() {
-		return strength < 0;
 	}
 	
 	public String toString() {

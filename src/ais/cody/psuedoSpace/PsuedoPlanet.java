@@ -10,7 +10,7 @@ public class PsuedoPlanet {
 	   public double productionFrequency;
 	   public Planet realPlanet;
 	   double partialProduction;
-	   public int neutral;
+	   public boolean neutral;
 	   
 	   public PsuedoPlanet(Planet planet, Player me) {
 		   position = new Vector(planet.getCoords());
@@ -19,7 +19,7 @@ public class PsuedoPlanet {
 		   productionFrequency = planet.getProductionFrequency();
 		   realPlanet = planet;
 		   partialProduction = 0;
-		   neutral = planet.ownedBy(null) ? 1 : 0;
+		   neutral = planet.ownedBy(null) ? true : false;
 	   }
 	   
 	   public PsuedoPlanet(PsuedoPlanet psuedoPlanet) {
@@ -32,12 +32,34 @@ public class PsuedoPlanet {
 	   }
 	   
 	   public void fleetArrives(int units) {
-		   boolean currentOwner = mine();
-		   strength += units;
-		   neutral = 0;
+		   int currentStrength = strength;
 		   
-		   if (currentOwner != mine()) {
-			   partialProduction = 0;
+		   if (neutral) {
+			   if (units > 0) {
+				   if (strength >= units)
+					   strength -= units;
+				   else {
+					   strength = -(strength - units);
+					   neutral = false;
+				   }
+			   }
+			   else {
+				   strength += units;
+				   if (strength < -units)
+					   neutral = false;
+			   }
+		   }
+		   else {
+			   if (strength + units == 0) {
+				   strength = 0;
+				   neutral = true;
+			   }
+			   else {
+				   strength += units;
+			   }
+			   if (currentStrength > 0 && strength <= 0 || currentStrength <= 0 && strength > 0)
+				   partialProduction = 0;
+			   
 		   }
 	   }
 	   
@@ -47,7 +69,7 @@ public class PsuedoPlanet {
 	   
 	   public void advance(int time) {
 		   double unitsProduced;
-		   if (neutral == 0) {
+		   if (neutral == false) {
 			   unitsProduced = time * productionFrequency;
 			   unitsProduced += partialProduction;
 			   partialProduction = unitsProduced - (int)unitsProduced;
@@ -74,7 +96,7 @@ public class PsuedoPlanet {
 	   }
 	   
 	   public boolean enemy() {
-		   return (strength > 0 && neutral == 0);
+		   return (strength > 0 && neutral == false);
 	   }
 	   
 	   public String toString() {
