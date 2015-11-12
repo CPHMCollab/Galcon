@@ -6,6 +6,7 @@ import galaxy.Player;
 
 import java.awt.Color;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -15,31 +16,30 @@ import java.util.stream.Collectors;
 
 import ais.PlayerUtils;
 import ais.PlayerUtils.Location;
+import ais.PlayerUtils.PlanetOwner;
 
-public class InfluenceAI extends Player {
+public class ContestInfluenceAI extends Player {
+   private static final boolean USE_MOVE_FORWARDS = false;
    private static final int MIN_AGGRESSIVE_DEFENSE = 10;
-   private static final int MIN_DEFENSIVE_DEFENSE = 2;
+   private static final int MIN_DEFENSIVE_DEFENSE = 1;
+   private static final double AGGRESSION = 2.0;
    private static final double BASE_DISTANCE_FACTOR = 50;
    private static final double DISTANCE_WEIGHTING = 0.2;
-   private static final double AGGRESSION = 2.0;
    private static final double UNIT_COUNT_POSITION_WEIGHT = 0.8;
    private static final double UNIT_GEN_POSITION_WEIGHT = 0.2;
-   //private static final double ADVANTAGE_THRESHOLD = 1.05;
    private static final double CAPTURE_SAFTEY_MARGIN = 1.02;
    
+   Planet take;
+   List<Planet> retake;
+   private boolean contest;
    private Set<Planet> mine;
    
-   public InfluenceAI() {
-      this(new Color(5,5,5));
+   public ContestInfluenceAI() {
+      this(Color.ORANGE);
    }
    
-   public InfluenceAI(Color c) {
-      super(c, "Influence AI");
-   }
-
-   public double getValue(Planet p, Location averageLocation, double variance) {
-      double distanceFactor = (variance + BASE_DISTANCE_FACTOR) / (averageLocation.distance(p) + BASE_DISTANCE_FACTOR);
-      return (p.getColor().equals(Color.GRAY) ? 1.0 : AGGRESSION) * Math.pow(distanceFactor, DISTANCE_WEIGHTING) / p.PRODUCTION_TIME / (10 + p.getNumUnits());
+   public ContestInfluenceAI(Color c) {
+      super(c, "Contest Influence AI");
    }
    
    @Override
@@ -71,12 +71,8 @@ public class InfluenceAI extends Player {
          }
       }
       
-      if (defending == false) {
-         evaluatePosition();
-         if (take != null) mine.add(take);
-      } else {
+      if (defending) {
          int available = 0;
-         
          if (target != null) {
             final Planet finalTarget = target;
             for (Planet p : myPlanets.stream().sorted((Planet a, Planet b) -> Double.compare(new Location(a).distance(finalTarget), new Location(b).distance(finalTarget))).collect(Collectors.toList())) {
@@ -93,16 +89,86 @@ public class InfluenceAI extends Player {
                }
             }
          }
+      } else {
+         if (contest) {
+            contest();
+         } else {
+            evaluatePosition();
+            if (take == null) {
+               if (USE_MOVE_FORWARDS) {
+                  moveFleetsForwards();
+               }
+            } else {
+               mine.add(take);
+            }
+         }
       }
    }
    
-   /*
+   public void moveFleetsForwards() {
+      List<Planet> theirPlanets = PlayerUtils.getOpponentsPlanets(planets, this);
+      if (theirPlanets.size() > 0) {
+         Location theirUnitArea = Location.getUnitCountWeightedCenter(theirPlanets);
+         Location theirProductionArea = Location.getProductionWeightedCenter(theirPlanets);
+         theirUnitArea = theirUnitArea.multiply(UNIT_COUNT_POSITION_WEIGHT);
+         theirProductionArea = theirProductionArea.multiply(UNIT_GEN_POSITION_WEIGHT);
+         Location theirLocation = theirUnitArea.sum(theirProductionArea);
+         Planet target = mine.stream().min((a, b) -> Double.compare(theirLocation.distance(a), theirLocation.distance(b))).get();
+         for (Planet p : PlayerUtils.getPlanetsOwnedByPlayer(planets, this)) {
+            int toSend = p.getNumUnits() - MIN_AGGRESSIVE_DEFENSE;
+            if (toSend > 0) {
+               addAction(p, target, toSend);
+            }
+         }
+      }
+   }
+   
+   public double getValue(Planet p, Location averageLocation, double variance) {
+      double distanceFactor = (variance + BASE_DISTANCE_FACTOR) / (averageLocation.distance(p) + BASE_DISTANCE_FACTOR);
+      return (p.getColor().equals(Color.GRAY) ? 1.0 : AGGRESSION) * Math.pow(distanceFactor, DISTANCE_WEIGHTING) / p.PRODUCTION_TIME / (10 + p.getNumUnits());
+   }
+   
+   private void contest() {
+      List<Planet> myPlanets = PlayerUtils.getPlanetsOwnedByPlayer(planets, this);
+      List<Planet> theirPlanets = PlayerUtils.getOpponentsPlanets(planets, this);
+      
+      if (myPlanets.size() > 1 || theirPlanets.size() > 1) {
+         contest = false;
+         return;
+      }
+      
+      if (take != null) {
+         int toSendToTake = 0;
+         while (!isEventualOwner(take, (int) Math.ceil(myPlanets.get(0).distanceTo(take) / Fleet.SPEED), toSendToTake)) {
+            toSendToTake++;
+         }
+         if (toSendToTake > 0) {
+            addAction(myPlanets.get(0), take, toSendToTake);
+         }
+      }
+      
+      for (Fleet fleet : PlayerUtils.getOpponentsFleets(fleets, this)) {
+         if (retake.contains(fleet.getDestination())) {
+            int distance = (int) Math.ceil(myPlanets.get(0).distanceTo(fleet.getDestination()) / Fleet.SPEED);
+            int fleetDistance = (int) Math.ceil(fleet.distanceLeft()/Fleet.SPEED);
+            if (distance > fleetDistance) {
+               int toSend = 0;
+               while (!isEventualOwner(fleet.getDestination(), distance, toSend)) toSend++;
+               if (toSend > 0) {
+                  addAction(myPlanets.get(0), fleet.getDestination(), toSend);
+               }
+               retake.remove(fleet.getDestination());
+               mine.add(fleet.getDestination());
+            }
+         }
+      }
+   }
+
    private static class PlanetAction {
       public int time;
       public int amount;
       public PlanetOwner owner;
    }
-   
    
    private boolean isEventualOwner(Planet p, int time, int amount) {
       PlanetOwner current;
@@ -161,15 +227,65 @@ public class InfluenceAI extends Player {
       }
       return current == PlanetOwner.PLAYER;
    }
-   */
-   
-   Planet take;
    
    @Override
    protected void newGame() {
       mine = new HashSet<>();
+      contest = true;
+      
+      List<Planet> myPlanets = PlayerUtils.getPlanetsOwnedByPlayer(planets, this);
+      List<Planet> theirPlanets = PlayerUtils.getOpponentsPlanets(planets, this);
+      List<Planet> unownedPlanets = PlayerUtils.getUnoccupiedPlanets(planets);
+      
+      if (myPlanets.size() != 1 || theirPlanets.size() != 1) {
+         throw new RuntimeException("Unexpected starting situation MyPlanets: " + myPlanets.size() + " TheirPlanets: " + theirPlanets.size());
+      }
+      
+      Planet me = myPlanets.get(0);
+      Planet them = theirPlanets.get(0);
+      
+      int distance = (int) Math.ceil(me.distanceTo(them) / Fleet.SPEED);
+      int distanceProduction = distance / me.PRODUCTION_TIME;
+      
+      Planet best = null;
+      double bestValue = Double.MIN_VALUE;
+      
+      for (Planet p : unownedPlanets) {
+         int toMe = (int) Math.ceil(p.distanceTo(me) / Fleet.SPEED);
+         int toThem = (int) Math.ceil(p.distanceTo(them) / Fleet.SPEED);
+         if (toMe <= toThem) {
+            int takenContribution = 0;
+            if (distance - toMe * 2 > 0) {
+               takenContribution = (int) Math.floor((distance - toMe * 2) / p.PRODUCTION_TIME);
+            }
+            if (p.getNumUnits() + 1 - takenContribution < distanceProduction) {
+               double value = 1.0 / p.PRODUCTION_TIME / (100 + p.getNumUnits());
+               if (value > bestValue) {
+                  bestValue = value;
+                  best = p;
+               }
+            }
+         }
+      }
+      take = best;
+      
+      retake = new ArrayList<>(unownedPlanets);
+      
+      for (Planet p : unownedPlanets) {
+         int toMe = (int) Math.ceil(p.distanceTo(me) / Fleet.SPEED);
+         int toThem = (int) Math.ceil(p.distanceTo(them) / Fleet.SPEED);
+         if (toMe >= toThem) {
+            int takenContribution = 0;
+            if (distance - toThem * 2 > 0) {
+               takenContribution = (int) Math.floor((distance - toThem * 2) / p.PRODUCTION_TIME);
+            }
+            if (p.getNumUnits() * CAPTURE_SAFTEY_MARGIN + 1 - takenContribution < distanceProduction) {
+               retake.remove(p);
+            }
+         }
+      }
    }
-
+   
    private void evaluatePosition() {
       List<Planet> myPlanets = PlayerUtils.getPlanetsOwnedByPlayer(planets, this);
       List<Planet> theirPlanets = PlayerUtils.getOpponentsPlanets(planets, this);
