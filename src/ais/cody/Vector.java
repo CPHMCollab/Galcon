@@ -22,7 +22,12 @@ public class Vector {
     public Vector(double[] position){
         x = position[0];
         y = position[1];
-        z = position[2];
+        try {
+        	z = position[2];
+        }
+        catch (Exception ex) {
+        	z = 0;
+        }
     }
     
     public static double abs(Vector v){

@@ -15,9 +15,11 @@ public class ValueCapture extends Player {
 	private static final double DISTANCE_COEFFICIENT = .3;
 	private double health;
 	private Vector heart; 
+	private int turn;
 
    public ValueCapture() {
       super(new Color(255,255,255), "ValueCapture");
+      turn = 0;
    }
    
    public ValueCapture(Color c) {
@@ -35,7 +37,12 @@ public class ValueCapture extends Player {
 		   this.health += p.getNumUnits();
 		   
 		   planetPosition = p.getCoords();
-		   planetVector = new Vector(planetPosition[0], planetPosition[1], planetPosition[2]);
+		   try {
+			   planetVector = new Vector(planetPosition[0], planetPosition[1], planetPosition[2]);
+		   }
+		   catch (Exception ex) {
+			   planetVector = new Vector(planetPosition[0], planetPosition[1], 0);
+		   }
 		   planetVector = Vector.scale(planetVector, p.getNumUnits());
 		   heart = Vector.add(heart, planetVector);
 	   }
@@ -45,6 +52,9 @@ public class ValueCapture extends Player {
    
    @Override
    protected void turn() {
+	  if (turn++ < 10)
+		  return;
+	  
       ArrayList<Planet> myPlanets = new ArrayList<Planet>(PlayerUtils.getPlanetsOwnedByPlayer(planets, this));
       ArrayList<Planet> opponentsPlanets = new ArrayList<Planet>(PlayerUtils.getOpponentsPlanets(planets, this));
       ArrayList<Planet> neutralPlanets = new ArrayList<Planet>(PlayerUtils.getPlanetsNotOwnedByPlayer(planets, this));

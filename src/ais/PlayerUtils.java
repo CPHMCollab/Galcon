@@ -461,4 +461,24 @@ public class PlayerUtils {
       }
       return unitCount;
    }
+   
+   public static double getMyTotalProductionFrequency(Planet[] planets, Player player) {
+      double productionFrequency = 0;
+      for(Planet p: planets) {
+         if(p.ownedBy(player)) {
+            productionFrequency += p.getProductionFrequency();
+         }
+      }
+      return productionFrequency;
+   }
+   
+   public static double getEnemyTotalProductionFrequency(Planet[] planets, Player player) {
+      double productionFrequency = 0;
+      for(Planet p: planets) {
+         if(!p.ownedBy(player) && !p.isNeutral()) {
+            productionFrequency += p.getProductionFrequency();
+         }
+      }
+      return productionFrequency;
+   }
 }

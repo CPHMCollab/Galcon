@@ -12,11 +12,11 @@ import galaxy.Player;
 public class TylerRandomAI extends Player {
    
    public TylerRandomAI() {
-      super(Color.GREEN, "Tyler");
+      super(new Color(50,100,0), "Pseudo Random AI");
    }
    
    public TylerRandomAI(Color c) {
-      super(c, "Tyler");
+      super(c, "Pseudo Random AI");
    }
    
    @Override

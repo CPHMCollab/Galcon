@@ -22,11 +22,11 @@ public class TylerAI extends Player {
    private int stalemateTimer = 0;
 
    public TylerAI() {
-      super(Color.GREEN, "Tyler");
+      super(new Color(50,100,0), "Tyler AI");
    }
    
    public TylerAI(Color c) {
-      super(c, "Tyler");
+      super(c, "Tyler AI");
    }
    
    @Override

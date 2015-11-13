@@ -157,21 +157,25 @@ public final class Planet extends Unit {
             minDimension = Main.DIMENSIONS[i];
          }
       }
-      double maxAngle = Math.toRadians(180 / Main.players.length);
+      // almost every angle varies from 0-180 degrees
+      double maxAngle = Math.toRadians(360 / Main.players.length);
 
-      double randomAngle;
       double[] coords = new double[Main.DIMENSIONS.length];
+      double[] randomAngles = new double[Main.DIMENSIONS.length - 2];
+      double randomRadius;
+      double lastAngle;
       do {
-         double randomRadius = Math.random() * minDimension;
+         randomRadius = Math.random() * minDimension;
          double calculatedSin = 1;
          for (int i = 0; i < Main.DIMENSIONS.length - 2; i++) {
-            randomAngle = Math.random() * maxAngle;
-            coords[i] = randomRadius * calculatedSin * Math.cos(randomAngle);
-            calculatedSin *= Math.sin(randomAngle);
+            randomAngles[i] = Math.random() * maxAngle;
+            coords[i] = randomRadius * calculatedSin * Math.cos(randomAngles[i]) + Main.DIMENSIONS[i] / 2;
+            calculatedSin *= Math.sin(randomAngles[i]);
          }
-         double lastAngle = Math.random() * maxAngle * 2;
-         coords[Main.DIMENSIONS.length - 2] = randomRadius * calculatedSin * Math.cos(lastAngle);
-         coords[Main.DIMENSIONS.length - 1] = randomRadius * calculatedSin * Math.sin(lastAngle);
+         // The last two coords use a diff angle (0-360 degrees).
+         lastAngle = Math.random() * maxAngle * 2;
+         coords[Main.DIMENSIONS.length - 2] = randomRadius * calculatedSin * Math.cos(lastAngle) + Main.DIMENSIONS[Main.DIMENSIONS.length - 2] / 2;
+         coords[Main.DIMENSIONS.length - 1] = randomRadius * calculatedSin * Math.sin(lastAngle) + Main.DIMENSIONS[Main.DIMENSIONS.length - 1] / 2;
       } while (checkOverlappingOtherPlanets(planetRadius, coords));
       // TODO: there might be an edge case where there are a lot of players and a planet is
       // generated very close to the center. It may not overlap with existing planets, but it
@@ -180,8 +184,29 @@ public final class Planet extends Unit {
       //    Best way to fix would be to add a method in the while check that checks symmetric
       //    locations to make sure they won't overlap.
 
-      // TODO: generate the other locations
-      double[][] locations = { coords };
+      // get the locations where each of the other player's planets would be
+      double[][] locations = new double[Main.players.length][];
+      locations[0] = coords;
+      for (int p = 1; p < Main.players.length; p++) {
+         double[] newCoords = new double[Main.DIMENSIONS.length];
+         
+         // update the angles for the next player
+         for (int i = 0; i < randomAngles.length; i++) {
+          randomAngles[i] += maxAngle;
+         }
+         lastAngle += maxAngle * 2;
+         
+         // calculate the new coords
+         double calculatedSin = 1;
+         for (int i = 0; i < Main.DIMENSIONS.length - 2; i++) {
+            newCoords[i] = randomRadius * calculatedSin * Math.cos(randomAngles[i]) + Main.DIMENSIONS[i] / 2;
+            calculatedSin *= Math.sin(randomAngles[i]);
+         }
+         // The last two coords use a diff angle (0-360 degrees).
+         newCoords[Main.DIMENSIONS.length - 2] = randomRadius * calculatedSin * Math.cos(lastAngle) + Main.DIMENSIONS[Main.DIMENSIONS.length - 2] / 2;
+         newCoords[Main.DIMENSIONS.length - 1] = randomRadius * calculatedSin * Math.sin(lastAngle) + Main.DIMENSIONS[Main.DIMENSIONS.length - 1] / 2;
+         locations[p] = newCoords;
+      }
       return locations;
    }
 
