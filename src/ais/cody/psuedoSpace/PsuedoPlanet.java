@@ -70,7 +70,7 @@ public class PsuedoPlanet {
 	   public void advance(int time) {
 		   double unitsProduced;
 		   if (neutral == false) {
-			   unitsProduced = time * productionFrequency;
+			   unitsProduced = (double)time * productionFrequency;
 			   unitsProduced += partialProduction;
 			   partialProduction = unitsProduced - (int)unitsProduced;
 			   
@@ -100,7 +100,7 @@ public class PsuedoPlanet {
 	   }
 	   
 	   public String toString() {
-		   return "Planet: strength " + strength;
+		   return "Planet: location: " + position + " strength " + strength;
 	   }
 	   
 	   public boolean equals(PsuedoPlanet other) {

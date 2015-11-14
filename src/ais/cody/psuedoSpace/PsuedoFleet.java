@@ -47,6 +47,6 @@ public class PsuedoFleet {
 	}
 	
 	public String toString() {
-		return "Fleet: Sending " + strength + " units to planet " + target.strength;
+		return "Fleet: Sending " + strength + " units to planet " + target.strength + ". " + turnsLeft + " turns left.";
 	}
 }

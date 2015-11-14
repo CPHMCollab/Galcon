@@ -7,9 +7,12 @@ import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.image.BufferedImage;
+import java.util.List;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+
+import ais.PlayerUtils;
 
 @SuppressWarnings("serial")
 public abstract class Visualizer extends JPanel implements KeyListener, MouseListener {
@@ -90,6 +93,15 @@ public abstract class Visualizer extends JPanel implements KeyListener, MouseLis
 
    protected final int numUnitsOwnedBy(Player p) {
       return Galaxy.numUnitsOwnedBy(p);
+   }
+
+   protected final int totalProduction(Player p) {
+	   double production = 0;
+	   List<Planet> playerPlanets = PlayerUtils.getPlanetsOwnedByPlayer(planets, p);
+	   for (Planet planet : playerPlanets)
+		   production += planet.getProductionFrequency();
+	   
+	   return (int)(production * 100);
    }
 
    protected abstract void drawBackground(Graphics g);

@@ -248,12 +248,12 @@ public class Display extends Visualizer {
       int offset = 1;
       for (Player p : players) {
          g.setColor(Color.DARK_GRAY);
-         g.drawString(p.NAME + ": " + numUnitsOwnedBy(p), 10, FONT_HEIGHT * offset - 1);
-         g.drawString(p.NAME + ": " + numUnitsOwnedBy(p), 10, FONT_HEIGHT * offset + 1);
-         g.drawString(p.NAME + ": " + numUnitsOwnedBy(p), 9, FONT_HEIGHT * offset);
-         g.drawString(p.NAME + ": " + numUnitsOwnedBy(p), 11, FONT_HEIGHT * offset);
+         g.drawString(p.NAME + ": " + numUnitsOwnedBy(p) + " " + totalProduction(p), 10, FONT_HEIGHT * offset - 1);
+         g.drawString(p.NAME + ": " + numUnitsOwnedBy(p) + " " + totalProduction(p), 10, FONT_HEIGHT * offset + 1);
+         g.drawString(p.NAME + ": " + numUnitsOwnedBy(p) + " " + totalProduction(p), 9, FONT_HEIGHT * offset);
+         g.drawString(p.NAME + ": " + numUnitsOwnedBy(p) + " " + totalProduction(p), 11, FONT_HEIGHT * offset);
          g.setColor(p.COLOR);
-         g.drawString(p.NAME + ": " + numUnitsOwnedBy(p), 10, FONT_HEIGHT * offset++);
+         g.drawString(p.NAME + ": " + numUnitsOwnedBy(p) + " " + totalProduction(p), 10, FONT_HEIGHT * offset++);
       }
    }
 

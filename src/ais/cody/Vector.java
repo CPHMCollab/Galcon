@@ -1,5 +1,7 @@
 package ais.cody;
 
+import java.util.Formatter;
+
 /**
  *
  * @author Jono
@@ -79,7 +81,10 @@ public class Vector {
     
     @Override
     public String toString(){
-        return "{"+x+", "+y+", "+z+"}";
+    	StringBuilder stringBuilder = new StringBuilder();
+    	Formatter formatter = new Formatter(stringBuilder);
+    	formatter.format("[%4.0f, %4.0f, %4.0f]", x, y, z);
+    	return stringBuilder.toString();
     }
     
     public boolean equals(Vector other) {

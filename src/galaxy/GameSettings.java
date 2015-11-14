@@ -1,5 +1,6 @@
 package galaxy;
 
+import java.awt.Color;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -20,17 +21,17 @@ class GameSettings {
    static final boolean debugMode = false, logGame = false;
 
    static BufferedWriter gameLog = logGame ? makeLogFile("galconset-" + formatDate(new Date())) : null;
-   static Player p1 = new ContestInfluenceAI();
-   static Player p2 = new TylerDefenderAI();
+   static Player p1 = new ValueCapture();
+   static Player p2 = new TheGeneral(Color.PINK);
    static Player [] players = {p1, p2};
    
-//   static final int[] DIMENSIONS = {1000, 1000, 1000};
-//   static final int NUM_PLANETS = 16;
-//   static Visualizer visualizer = new Display(DIMENSIONS);
-
-   static final int[] DIMENSIONS = {800, 800};
+   static final int[] DIMENSIONS = {1000, 1000, 1000};
    static final int NUM_PLANETS = 16;
-   static Visualizer visualizer = new DefaultVisualizer(DIMENSIONS);
+   static Visualizer visualizer = new Display(DIMENSIONS);
+
+//   static final int[] DIMENSIONS = {800, 800};
+//   static final int NUM_PLANETS = 16;
+//   static Visualizer visualizer = new DefaultVisualizer(DIMENSIONS);
 
 
 

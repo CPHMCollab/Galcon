@@ -13,12 +13,12 @@ import ais.cody.psuedoSpace.PsuedoGalaxy;
 
 
 public class TheGeneral extends Player {
-	private static final double FUTURE_COEFFICIENT = 1;
+	private static final double FUTURE_COEFFICIENT = 2;
 	private static final double DISTANCE_COEFFICIENT = .3;
-	private static final int TIME_TO_PREDICT = 500;
-	private static final int PREDICTION_INCREMENT = 10;
-	private static final double PRODUCTION_VALUE = 2;
-	private static final double SPREAD_VALUE = 0;
+	private static final int TIME_TO_PREDICT = 1000;
+	private static final int PREDICTION_INCREMENT = 1;
+	private static final double PRODUCTION_VALUE = 100;
+	private static final double SPREAD_VALUE = 1000;
 	private int turn;
 	private PsuedoGalaxy psuedoGalaxy;
 	private ArrayList<Move> potentialMoves;
@@ -37,6 +37,9 @@ public class TheGeneral extends Player {
    protected void turn() {
 	  psuedoGalaxy = new PsuedoGalaxy(planets, fleets, this);
      
+	  if (turn == 0)
+		  testModel(psuedoGalaxy);
+	  
       //findBestAction(psuedoGalaxy).commit();
       
       findBestActions(psuedoGalaxy);
@@ -46,6 +49,7 @@ public class TheGeneral extends Player {
       }
       
       turn++;
+	  return;
    }
    
    private void findBestActions(PsuedoGalaxy psuedoGalaxy) {
@@ -67,7 +71,7 @@ public class TheGeneral extends Player {
 	  for (PsuedoPlanet to : psuedoGalaxy.psuedoPlanets) {
 		  totalToSend = 0;
 		  move = new Move();
-		  cost = costOfPlanet(to);
+		  cost = costOfPlanet(psuedoGalaxy, to);
 		  weightedCost = cost;
 		  distance = to.distanceTo(Vector.getCoords(psuedoGalaxy.heart));
 		  weightedCost += DISTANCE_COEFFICIENT * distance;
@@ -78,7 +82,7 @@ public class TheGeneral extends Player {
 		  if (cost >= 0) {
 			  attackers = new ArrayList<PsuedoPlanet>();
 			  //System.out.print("New possible move:");
-		      targetCost = costOfPlanet(to);
+		      targetCost = costOfPlanet(psuedoGalaxy, to);
 	    	  for (PsuedoPlanet from : psuedoGalaxy.myPlanets()) {
 	    		  if (psuedoGalaxy.psuedoPlanetStrength(from) < -1) {
 	    			  attackers.add(from);
@@ -162,7 +166,7 @@ public class TheGeneral extends Player {
       // find the best planet to send units to
 	  least = Double.MAX_VALUE;
 	  for (PsuedoPlanet to : psuedoGalaxy.psuedoPlanets) {
-		  cost = costOfPlanet(to);
+		  cost = costOfPlanet(psuedoGalaxy, to);
 		  weightedCost = cost;
 		  distance = to.distanceTo(Vector.getCoords(psuedoGalaxy.heart));
 		  weightedCost += DISTANCE_COEFFICIENT * distance;
@@ -180,7 +184,7 @@ public class TheGeneral extends Player {
 		  move = new Move();
 		  //System.out.println("Found target ");
 		  
-	      targetCost = costOfPlanet(target);
+	      targetCost = costOfPlanet(psuedoGalaxy, target);
     	  for (PsuedoPlanet from : psuedoGalaxy.myPlanets()) {
     		  if (psuedoGalaxy.psuedoPlanetStrength(from) < -1)
     			  attackers.add(from);
@@ -232,7 +236,7 @@ public class TheGeneral extends Player {
       // find the best planet to send units to
       max = -Double.MAX_VALUE;
 	  for (PsuedoPlanet to : psuedoGalaxy.psuedoPlanets) {
-		  cost = costOfPlanetEnemy(to);
+		  cost = costOfPlanetEnemy(psuedoGalaxy, to);
 		  weightedCost = cost;
 		  distance = to.distanceTo(Vector.getCoords(psuedoGalaxy.enemyHeart));
 		  weightedCost -= DISTANCE_COEFFICIENT * distance;
@@ -246,22 +250,25 @@ public class TheGeneral extends Player {
 	  
 	  // determine who should send units
 	  if (target != null && max != Double.MIN_VALUE) {
+		  //System.out.println("Found Target " + target);
 		  move = new Move();
 		  
-	      targetCost = -costOfPlanetEnemy(target);
+	      targetCost = -costOfPlanetEnemy(psuedoGalaxy, target);
+	      //System.out.println("cost " + targetCost);
     	  for (PsuedoPlanet from : psuedoGalaxy.enemyPlanets()) {
-    		  if (psuedoGalaxy.psuedoPlanetStrength(from) > 1)
+    		  if (psuedoGalaxy.psuedoPlanetStrengthEnemy(from) > 1)
     			  attackers.add(from);
     	  }
 		  
 		  if (!attackers.isEmpty()) {
+			  //System.out.println("Attackers not empty");
 			  unitsToSend = new int[attackers.size()];
 	    	  canAttack = true;
 			  while (totalToSend <= targetCost && canAttack) {
 	    		  canAttack = false;
 	    		  i = 0;
 		    	  for (PsuedoPlanet from : attackers) {
-		    		  strength = psuedoGalaxy.psuedoPlanetStrength(from);
+		    		  strength = psuedoGalaxy.psuedoPlanetStrengthEnemy(from);
 		    		  if (strength - unitsToSend[i] > 2) {
 		    			  unitsToSend[i]++;
 		    			  totalToSend++;
@@ -270,6 +277,8 @@ public class TheGeneral extends Player {
 		    		  i++;
 		    	  }
 	    	  }
+			  
+			  //System.out.println("Sending " + totalToSend);
 			  
 			  if (totalToSend > targetCost) {
 	    		  i = 0;
@@ -289,7 +298,7 @@ public class TheGeneral extends Player {
    }   
 
    // How many units will it take to capture a planet?
-   private double costOfPlanet(PsuedoPlanet target) {
+   private double costOfPlanet(PsuedoGalaxy psuedoGalaxy, PsuedoPlanet target) {
 	   double cost = Double.MAX_VALUE;
 	   double timeCost;
 	   
@@ -308,20 +317,20 @@ public class TheGeneral extends Player {
 	   return cost;
    }
    // How many units will it take to capture a planet?
-   private double costOfPlanetEnemy(PsuedoPlanet target) {
+   private double costOfPlanetEnemy(PsuedoGalaxy psuedoGalaxy, PsuedoPlanet target) {
 	   double cost = Double.MIN_VALUE;
 	   double timeCost;
 	   
 	   timeCost = -(target.productionFrequency * (target.distanceTo(Vector.getCoords(psuedoGalaxy.enemyHeart)) / Fleet.SPEED)) - 1;
 	   
 	   if (target.neutral == true) {
-		   cost = psuedoGalaxy.psuedoPlanetStrength(target) - 1;
+		   cost = psuedoGalaxy.psuedoPlanetStrengthEnemy(target) - 1;
 	   }
 	   else if (target.enemy()) {
-		   cost = psuedoGalaxy.psuedoPlanetStrength(target);
+		   cost = psuedoGalaxy.psuedoPlanetStrengthEnemy(target);
 	   }
 	   else {
-		   cost = (psuedoGalaxy.psuedoPlanetStrength(target) - 1) + timeCost;
+		   cost = (psuedoGalaxy.psuedoPlanetStrengthEnemy(target) - 1) + timeCost;
 	   }
 	   
 	   return cost;
@@ -329,12 +338,38 @@ public class TheGeneral extends Player {
 
    @Override
    protected void newGame() {
-      
+
    }
 
    @Override
    protected String storeSelf() {
       return null;
+   }
+   
+   private void testModel(PsuedoGalaxy psuedoGalaxy) {
+	   ArrayList<PsuedoAction> psuedoActions;
+	   PsuedoPlanet myHome, enemyHome, t1, t2;
+	   Move enemyMove;
+	   PsuedoGalaxy model = new PsuedoGalaxy(psuedoGalaxy);
+	   System.out.println("Original Model:\n" + model);
+
+	   myHome = model.myPlanets().get(0);
+	   enemyHome = model.enemyPlanets().get(0);
+	   t1 = model.neutralPlanets().get(0);
+	   t2 = model.neutralPlanets().get(1);
+	   psuedoActions = new ArrayList<PsuedoAction>();
+
+	   for (int i = 0; i < 1000; i += 1) {
+		   psuedoActions = null;
+		   //enemyMove = findWorstAction(model);
+		   enemyMove = null;
+		   if (enemyMove != null)
+			   psuedoActions = enemyMove.psuedoActions;
+		   model.advance(1, psuedoActions);
+		   if (i % 100 == 0)
+			   System.out.println(i + " Model:\n" + model);
+	   }
+	   System.out.println("End Model:\n" + model);
    }
   
    private class Move implements Comparable<Move> {

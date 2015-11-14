@@ -43,8 +43,9 @@ public class PsuedoGalaxy {
 		for (PsuedoPlanet psuedoPlanet : psuedoPlanets)
 			psuedoPlanet.advance(time);
 		
-		for (PsuedoAction psuedoAction : psuedoActions) 
-			psuedoFleets.add(psuedoAction.act());
+		if (psuedoActions != null)
+			for (PsuedoAction psuedoAction : psuedoActions) 
+				psuedoFleets.add(psuedoAction.act());
 		
 		for (PsuedoFleet psuedoFleet : psuedoFleets)
 			psuedoFleet.advance(time);
@@ -115,6 +116,21 @@ public class PsuedoGalaxy {
 		
 	}
 	
+	public int psuedoPlanetStrengthEnemy(PsuedoPlanet psuedoPlanet) {
+	   int planetStrength = psuedoPlanet.strength;
+	   
+	   if (psuedoPlanet.neutral)
+		   planetStrength = -planetStrength;
+	   
+	   for (PsuedoFleet psuedoFleet : psuedoFleets) 
+		   if (psuedoFleet.target.equals(psuedoPlanet))
+			   planetStrength += psuedoFleet.strength;
+		   
+	   
+	   return planetStrength;
+		
+	}
+	
    private void findCenters() {
 	   double health;
 	   double enemyHealth;
@@ -175,8 +191,8 @@ public class PsuedoGalaxy {
 		for (PsuedoFleet psuedoFleet : psuedoFleets)
 			health += psuedoFleet.strength;
 		
-		health -= spreadValue * spread(heart, myPlanets());
-		health += spreadValue * spread(enemyHeart, enemyPlanets());
+		health -= spreadValue / spread(heart, myPlanets());
+		health += spreadValue / spread(enemyHeart, enemyPlanets());
 		
 		return health;
 	}
@@ -185,13 +201,13 @@ public class PsuedoGalaxy {
 		String str = "PsuedoGalaxy: \n";
 		str += "   Neutral Planets: \n";
 		for (PsuedoPlanet psuedoPlanet : neutralPlanets())
-			str += "      " + psuedoPlanet.toString() + "\n";
+			str += "      " + psuedoPlanet.toString() + " " + psuedoPlanetStrengthEnemy(psuedoPlanet)  + "\n";
 		str += "   My Planets: \n";
 		for (PsuedoPlanet psuedoPlanet : myPlanets())
-			str += "      " + psuedoPlanet.toString() + "\n";
+			str += "      " + psuedoPlanet.toString() + " " + psuedoPlanetStrengthEnemy(psuedoPlanet)  + "\n";
 		str += "   Enemy Planets: \n";
 		for (PsuedoPlanet psuedoPlanet : enemyPlanets())
-			str += "      " + psuedoPlanet.toString() + "\n";
+			str += "      " + psuedoPlanet.toString() + " " + psuedoPlanetStrengthEnemy(psuedoPlanet) + "\n";
 		str += "   My Fleets: \n";
 		for (PsuedoFleet psuedoFleet : myFleets())
 			str += "      " + psuedoFleet.toString() + "\n";
