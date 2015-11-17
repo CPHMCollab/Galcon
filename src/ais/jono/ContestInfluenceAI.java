@@ -7,10 +7,12 @@ import galaxy.Player;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -19,31 +21,147 @@ import ais.PlayerUtils.Location;
 import ais.PlayerUtils.PlanetOwner;
 
 public class ContestInfluenceAI extends Player {
-   private static final boolean USE_MOVE_FORWARDS = false;
-   private static final int MIN_AGGRESSIVE_DEFENSE = 10;
-   private static final int MIN_DEFENSIVE_DEFENSE = 1;
-   private static final double AGGRESSION = 2.0;
-   private static final double BASE_DISTANCE_FACTOR = 50;
-   private static final double DISTANCE_WEIGHTING = 0.2;
-   private static final double UNIT_COUNT_POSITION_WEIGHT = 0.8;
-   private static final double UNIT_GEN_POSITION_WEIGHT = 0.2;
-   private static final double CAPTURE_SAFTEY_MARGIN = 1.02;
+   
+   private List<CIConstants> currentGeneration = new ArrayList<>();
+   
+   private static final int POOL_SIZE = 6;
+   private static final int GAMES_PER_SAMPLE = 40;
+   private int gameCount = 0;
+   private int position = 0;
+   
+   public static class CIConstants {
+      private final boolean USE_MOVE_FORWARDS = false;
+      private final int MIN_AGGRESSIVE_DEFENSE; //this does nothing
+      private final int MIN_DEFENSIVE_DEFENSE;
+      private final double AGGRESSION;
+      private final double BASE_DISTANCE_FACTOR;
+      private final double DISTANCE_WEIGHTING;
+      private final double UNIT_COUNT_POSITION_WEIGHT;
+      private final double UNIT_GEN_POSITION_WEIGHT;
+      private final double CAPTURE_SAFTEY_MARGIN;
+      private int winCount = 0;
+      
+      public CIConstants() {
+         /*
+         MIN_AGGRESSIVE_DEFENSE = 10;
+         MIN_DEFENSIVE_DEFENSE = 1;
+         AGGRESSION = 2.0;
+         BASE_DISTANCE_FACTOR = 50;
+         DISTANCE_WEIGHTING = 0.2;
+         UNIT_COUNT_POSITION_WEIGHT = 0.8;
+         UNIT_GEN_POSITION_WEIGHT = 0.2;
+         CAPTURE_SAFTEY_MARGIN = 1.02;
+         */
+         
+         //for distance value defender
+         MIN_AGGRESSIVE_DEFENSE = 69;
+         MIN_DEFENSIVE_DEFENSE = 1;
+         AGGRESSION = 2.3146709908825276;
+         BASE_DISTANCE_FACTOR = 406.3556802091704;
+         DISTANCE_WEIGHTING = 0.10419349293965774;
+         UNIT_COUNT_POSITION_WEIGHT = 0.8323919872011701;
+         UNIT_GEN_POSITION_WEIGHT = 0.9137373218479841;
+         CAPTURE_SAFTEY_MARGIN = 1.3037189962512432;
+      }
+      
+      public void printSettings() {
+         System.out.println("MIN_AGGRESSIVE_DEFENSE = " + MIN_AGGRESSIVE_DEFENSE + ";");
+         System.out.println("MIN_DEFENSIVE_DEFENSE = " + MIN_DEFENSIVE_DEFENSE + ";");
+         System.out.println("AGGRESSION = " + AGGRESSION + ";");
+         System.out.println("BASE_DISTANCE_FACTOR = " + BASE_DISTANCE_FACTOR + ";");
+         System.out.println("DISTANCE_WEIGHTING = " + DISTANCE_WEIGHTING + ";");
+         System.out.println("UNIT_COUNT_POSITION_WEIGHT = " + UNIT_COUNT_POSITION_WEIGHT + ";");
+         System.out.println("UNIT_GEN_POSITION_WEIGHT = " + UNIT_GEN_POSITION_WEIGHT + ";");
+         System.out.println("CAPTURE_SAFTEY_MARGIN = " + CAPTURE_SAFTEY_MARGIN + ";");
+      }
+
+      public CIConstants(int mad, int mdd, double ag, double bdf, double dw, double ucpr, double ugpr, double csm) {
+         MIN_AGGRESSIVE_DEFENSE = mad;
+         MIN_DEFENSIVE_DEFENSE = mdd;
+         AGGRESSION = ag;
+         BASE_DISTANCE_FACTOR = bdf;
+         DISTANCE_WEIGHTING = dw;
+         UNIT_COUNT_POSITION_WEIGHT = ucpr;
+         UNIT_GEN_POSITION_WEIGHT = ugpr;
+         CAPTURE_SAFTEY_MARGIN = csm;
+      }
+      
+      public CIConstants(CIConstants a, CIConstants b) {
+         Random rnd = new Random();
+         MIN_AGGRESSIVE_DEFENSE     = getCombination(rnd.nextInt(3), a.MIN_AGGRESSIVE_DEFENSE, b.MIN_AGGRESSIVE_DEFENSE);
+         MIN_DEFENSIVE_DEFENSE      = getCombination(rnd.nextInt(3), a.MIN_DEFENSIVE_DEFENSE, b.MIN_DEFENSIVE_DEFENSE);
+         AGGRESSION                 = getCombination(rnd.nextInt(3), a.AGGRESSION, b.AGGRESSION);
+         BASE_DISTANCE_FACTOR       = getCombination(rnd.nextInt(3), a.BASE_DISTANCE_FACTOR, b.BASE_DISTANCE_FACTOR);
+         DISTANCE_WEIGHTING         = getCombination(rnd.nextInt(3), a.DISTANCE_WEIGHTING, b.DISTANCE_WEIGHTING);
+         UNIT_COUNT_POSITION_WEIGHT = getCombination(rnd.nextInt(3), a.UNIT_COUNT_POSITION_WEIGHT, b.UNIT_COUNT_POSITION_WEIGHT);
+         UNIT_GEN_POSITION_WEIGHT   = getCombination(rnd.nextInt(3), a.UNIT_GEN_POSITION_WEIGHT, b.UNIT_GEN_POSITION_WEIGHT);
+         CAPTURE_SAFTEY_MARGIN      = getCombination(rnd.nextInt(3), a.CAPTURE_SAFTEY_MARGIN, b.CAPTURE_SAFTEY_MARGIN);
+      }
+      
+      private static double getCombination(int mode, double a, double b) {
+         switch (mode) {
+         case 0:
+            return a;
+         case 1:
+            return b;
+         case 2:
+            return (a + b) / 2;
+         default:
+            throw new RuntimeException("Unexpected mode");
+         }
+      }
+      
+      private static int getCombination(int mode, int a, int b) {
+         switch (mode) {
+         case 0:
+            return a;
+         case 1:
+            return b;
+         case 2:
+            return (a + b) / 2;
+         default:
+            throw new RuntimeException("Unexpected mode");
+         }
+      }
+      
+      public static CIConstants generateRandomConstants() {
+         Random rnd = new Random();
+         return new CIConstants(rnd.nextInt(100), rnd.nextInt(100), rnd.nextDouble() * 3, 
+               rnd.nextDouble() * 1000, rnd.nextDouble() * 2, rnd.nextDouble(), 
+               rnd.nextDouble(), rnd.nextDouble() + 0.5);
+      }
+   }
+   
+   private int turn = 0;
    
    Planet take;
    List<Planet> retake;
    private boolean contest;
    private Set<Planet> mine;
+   private CIConstants constants = new CIConstants();
+   private final boolean LEARNING;
    
-   public ContestInfluenceAI() {
-      this(Color.ORANGE);
+   public ContestInfluenceAI(boolean learning) {
+      this(Color.ORANGE, learning);
    }
    
-   public ContestInfluenceAI(Color c) {
+   public ContestInfluenceAI(Color c, boolean learning) {
       super(c, "Contest Influence AI");
+      LEARNING = learning;
+      if (learning) {
+         for (int i = 0; i < POOL_SIZE; i++) {
+            currentGeneration.add(CIConstants.generateRandomConstants());
+            constants = currentGeneration.get(0);
+         }
+      }
    }
    
    @Override
    protected void turn() {
+      turn++;
+      if (turn > 10000) {
+         return;
+      }
       List<Planet> myPlanets = PlayerUtils.getPlanetsOwnedByPlayer(planets, this);
       for (Planet p : myPlanets) {
          if (PlayerUtils.getCurrentEventualOwner(p, fleets, this) == PlayerUtils.PlanetOwner.PLAYER) {
@@ -63,7 +181,7 @@ public class ContestInfluenceAI extends Player {
                   PlayerUtils.getOpponentsIncomingFleetCount(p, fleets, this) -
                   p.getNumUnits() -
                   PlayerUtils.getPlayersIncomingFleetCount(p, fleets, this) +
-                  MIN_DEFENSIVE_DEFENSE;
+                  constants.MIN_DEFENSIVE_DEFENSE;
             needed = Math.max(needed, 4);
             target = p;
             defending = true;
@@ -77,7 +195,7 @@ public class ContestInfluenceAI extends Player {
             final Planet finalTarget = target;
             for (Planet p : myPlanets.stream().sorted((Planet a, Planet b) -> Double.compare(new Location(a).distance(finalTarget), new Location(b).distance(finalTarget))).collect(Collectors.toList())) {
                if (p != target) {
-                  int contribution = p.getNumUnits() - PlayerUtils.getIncomingFleetCount(p, fleets) - (defending ? MIN_DEFENSIVE_DEFENSE : MIN_AGGRESSIVE_DEFENSE);
+                  int contribution = p.getNumUnits() - PlayerUtils.getIncomingFleetCount(p, fleets) - (defending ? constants.MIN_DEFENSIVE_DEFENSE : constants.MIN_AGGRESSIVE_DEFENSE);
                   
                   if (available + contribution > needed) {
                      addAction(p, target, needed - available);
@@ -95,7 +213,7 @@ public class ContestInfluenceAI extends Player {
          } else {
             evaluatePosition();
             if (take == null) {
-               if (USE_MOVE_FORWARDS) {
+               if (constants.USE_MOVE_FORWARDS) {
                   moveFleetsForwards();
                }
             } else {
@@ -110,12 +228,12 @@ public class ContestInfluenceAI extends Player {
       if (theirPlanets.size() > 0) {
          Location theirUnitArea = Location.getUnitCountWeightedCenter(theirPlanets);
          Location theirProductionArea = Location.getProductionWeightedCenter(theirPlanets);
-         theirUnitArea = theirUnitArea.multiply(UNIT_COUNT_POSITION_WEIGHT);
-         theirProductionArea = theirProductionArea.multiply(UNIT_GEN_POSITION_WEIGHT);
+         theirUnitArea = theirUnitArea.multiply(constants.UNIT_COUNT_POSITION_WEIGHT / (constants.UNIT_COUNT_POSITION_WEIGHT + constants.UNIT_GEN_POSITION_WEIGHT));
+         theirProductionArea = theirProductionArea.multiply(constants.UNIT_GEN_POSITION_WEIGHT / (constants.UNIT_COUNT_POSITION_WEIGHT + constants.UNIT_GEN_POSITION_WEIGHT));
          Location theirLocation = theirUnitArea.sum(theirProductionArea);
          Planet target = mine.stream().min((a, b) -> Double.compare(theirLocation.distance(a), theirLocation.distance(b))).get();
          for (Planet p : PlayerUtils.getPlanetsOwnedByPlayer(planets, this)) {
-            int toSend = p.getNumUnits() - MIN_AGGRESSIVE_DEFENSE;
+            int toSend = p.getNumUnits() - constants.MIN_AGGRESSIVE_DEFENSE;
             if (toSend > 0) {
                addAction(p, target, toSend);
             }
@@ -124,8 +242,8 @@ public class ContestInfluenceAI extends Player {
    }
    
    public double getValue(Planet p, Location averageLocation, double variance) {
-      double distanceFactor = (variance + BASE_DISTANCE_FACTOR) / (averageLocation.distance(p) + BASE_DISTANCE_FACTOR);
-      return (p.getColor().equals(Color.GRAY) ? 1.0 : AGGRESSION) * Math.pow(distanceFactor, DISTANCE_WEIGHTING) / p.PRODUCTION_TIME / (10 + p.getNumUnits());
+      double distanceFactor = (variance + constants.BASE_DISTANCE_FACTOR) / (averageLocation.distance(p) + constants.BASE_DISTANCE_FACTOR);
+      return (p.getColor().equals(Color.GRAY) ? 1.0 : constants.AGGRESSION) * Math.pow(distanceFactor, constants.DISTANCE_WEIGHTING) / p.PRODUCTION_TIME / (10 + p.getNumUnits());
    }
    
    private void contest() {
@@ -232,6 +350,7 @@ public class ContestInfluenceAI extends Player {
    protected void newGame() {
       mine = new HashSet<>();
       contest = true;
+      turn = 0;
       
       List<Planet> myPlanets = PlayerUtils.getPlanetsOwnedByPlayer(planets, this);
       List<Planet> theirPlanets = PlayerUtils.getOpponentsPlanets(planets, this);
@@ -279,7 +398,7 @@ public class ContestInfluenceAI extends Player {
             if (distance - toThem * 2 > 0) {
                takenContribution = (int) Math.floor((distance - toThem * 2) / p.PRODUCTION_TIME);
             }
-            if (p.getNumUnits() * CAPTURE_SAFTEY_MARGIN + 1 - takenContribution < distanceProduction) {
+            if (p.getNumUnits() * constants.CAPTURE_SAFTEY_MARGIN + 1 - takenContribution < distanceProduction) {
                retake.remove(p);
             }
          }
@@ -305,8 +424,8 @@ public class ContestInfluenceAI extends Player {
       
       Location myUnitArea = Location.getUnitCountWeightedCenter(myPlanets);
       Location myProductionArea = Location.getProductionWeightedCenter(myPlanets);
-      myUnitArea = myUnitArea.multiply(UNIT_COUNT_POSITION_WEIGHT);
-      myProductionArea = myProductionArea.multiply(UNIT_GEN_POSITION_WEIGHT);
+      myUnitArea = myUnitArea.multiply(constants.UNIT_COUNT_POSITION_WEIGHT);
+      myProductionArea = myProductionArea.multiply(constants.UNIT_GEN_POSITION_WEIGHT);
       Location myLocation = myUnitArea.sum(myProductionArea);
       double mySpread = Location.variance(myPlanets);
       
@@ -314,8 +433,8 @@ public class ContestInfluenceAI extends Player {
       if (theirPlanets.size() > 0) {
          Location theirUnitArea = Location.getUnitCountWeightedCenter(theirPlanets);
          Location theirProductionArea = Location.getProductionWeightedCenter(theirPlanets);
-         theirUnitArea = theirUnitArea.multiply(UNIT_COUNT_POSITION_WEIGHT);
-         theirProductionArea = theirProductionArea.multiply(UNIT_GEN_POSITION_WEIGHT);
+         theirUnitArea = theirUnitArea.multiply(constants.UNIT_COUNT_POSITION_WEIGHT);
+         theirProductionArea = theirProductionArea.multiply(constants.UNIT_GEN_POSITION_WEIGHT);
          theirLocation = theirUnitArea.sum(theirProductionArea);
       } else {
          theirLocation = myLocation;
@@ -329,7 +448,7 @@ public class ContestInfluenceAI extends Player {
             if (influencing == p) {
                addMap(myInfluence, p,  Double.valueOf(p.getNumUnits()));
             } else {
-               double influence = influencing.getNumUnits() * 0.5 * (new Location(influencing).distance(p) + BASE_DISTANCE_FACTOR) / (theirLocation.distance(p) + BASE_DISTANCE_FACTOR);
+               double influence = influencing.getNumUnits() * 0.5 * (new Location(influencing).distance(p) + constants.BASE_DISTANCE_FACTOR) / (theirLocation.distance(p) + constants.BASE_DISTANCE_FACTOR);
                addMap(myInfluence, p, influence);
             }
          }
@@ -345,7 +464,7 @@ public class ContestInfluenceAI extends Player {
             if (influencing == p) {
                addMap(theirInfluence, p, Double.valueOf(p.getNumUnits()));
             } else {
-               double influence = influencing.getNumUnits() * Math.pow(0.5 * (new Location(influencing).distance(p) + BASE_DISTANCE_FACTOR) / (myLocation.distance(p) + BASE_DISTANCE_FACTOR), DISTANCE_WEIGHTING);
+               double influence = influencing.getNumUnits() * Math.pow(0.5 * (new Location(influencing).distance(p) + constants.BASE_DISTANCE_FACTOR) / (myLocation.distance(p) + constants.BASE_DISTANCE_FACTOR), constants.DISTANCE_WEIGHTING);
                addMap(theirInfluence, p, influence);
             }
          }
@@ -357,7 +476,7 @@ public class ContestInfluenceAI extends Player {
       
       List<Planet> potentialTargets = new ArrayList<>();
       for (Planet p : planets) {
-         if (myInfluence.get(p) - (p.isNeutral() ? p.getNumUnits() : 0) > CAPTURE_SAFTEY_MARGIN * (theirInfluence.containsKey(p) ? theirInfluence.get(p) : 0)) {
+         if (myInfluence.get(p) - (p.isNeutral() ? p.getNumUnits() : 0) > constants.CAPTURE_SAFTEY_MARGIN * (theirInfluence.containsKey(p) ? theirInfluence.get(p) : 0)) {
             potentialTargets.add(p);
          }
       }
@@ -382,5 +501,43 @@ public class ContestInfluenceAI extends Player {
    @Override
    protected String storeSelf() {
       return null;
+   }
+   
+   @Override
+   protected void endGame(boolean victorious) {
+      if (LEARNING) {
+         if (victorious) {
+            constants.winCount++;
+            System.out.println("Game " + position + "," + gameCount + " won");
+         } else {
+            System.out.println("Game " + position + "," + gameCount + " lost");
+         }
+         gameCount++;
+         if (gameCount == GAMES_PER_SAMPLE) {
+            gameCount = 0;
+            position++;
+            if (position >= currentGeneration.size()) {
+               List<CIConstants> nextGeneration = new ArrayList<>();
+               Collections.shuffle(currentGeneration);
+               Collections.sort(currentGeneration, (a,b) -> -Integer.compare(a.winCount, b.winCount));
+               System.out.println("Best settings:");
+               currentGeneration.get(0).printSettings();
+               System.out.print("Generation complete, performance:");
+               for (CIConstants c : currentGeneration) {
+                  System.out.print(" " + c.winCount);
+                  c.winCount = 0;
+               }
+               System.out.println();
+               for (int i = 0; i < POOL_SIZE / 2; i++) {
+                  nextGeneration.add(currentGeneration.get(i));
+                  nextGeneration.add(new CIConstants(currentGeneration.get(i), currentGeneration.get(i + 1)));
+                  nextGeneration.add(new CIConstants(currentGeneration.get(i), CIConstants.generateRandomConstants()));
+               }
+               currentGeneration = nextGeneration;
+               position = 0;
+            }
+            constants = currentGeneration.get(position);
+         }
+      }
    }
 }

@@ -56,6 +56,9 @@ public class ValueDefenderAI extends Player {
                }
             }
          }
+         if (target == null) {
+            return;
+         }
          needed = target.getNumUnits() + 20;
       }
       

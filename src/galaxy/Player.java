@@ -82,6 +82,9 @@ public abstract class Player {
     */
    protected void loadFromStore(String oldself) {}
 
+   //notify player to end the game
+   protected void endGame(boolean vicorious) {}
+
    /**
     * Checks if two players are equal. Works with null. 
     * @param p1

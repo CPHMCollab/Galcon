@@ -53,6 +53,9 @@ final class Director {
 
       Player winner = Galaxy.isGameOver();
       if (winner != null) {
+         for (Player p : active) {
+            p.endGame(p == winner);
+         }
          Stats.updateAllStats(active, winner);
          newGame();
       }
@@ -64,8 +67,11 @@ final class Director {
       active = mm.getPlayers();
 
       Galaxy.clear();
-      //Galaxy.generateRandomMap(active);
-      Galaxy.generateSymmetricMap();
+      if (GameSettings.SYMMETRIC) {
+         Galaxy.generateSymmetricMap();
+      } else {
+         Galaxy.generateRandomMap(active);
+      }
 
       Player[] activeArray = new Player[active.size()];
       int i = 0;
