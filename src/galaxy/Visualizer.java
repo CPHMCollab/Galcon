@@ -101,7 +101,7 @@ public abstract class Visualizer extends JPanel implements KeyListener, MouseLis
 	   for (Planet planet : playerPlanets)
 		   production += planet.getProductionFrequency();
 	   
-	   return (int)(production * 100);
+	   return (int)(production * 200);
    }
 
    protected abstract void drawBackground(Graphics g);

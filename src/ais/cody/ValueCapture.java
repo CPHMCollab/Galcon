@@ -52,7 +52,7 @@ public class ValueCapture extends Player {
    
    @Override
    protected void turn() {
-	  if (turn++ < 10)
+	  if (turn++ % 10 == 0)
 		  return;
 	  
       ArrayList<Planet> myPlanets = new ArrayList<Planet>(PlayerUtils.getPlanetsOwnedByPlayer(planets, this));

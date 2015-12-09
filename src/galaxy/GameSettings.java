@@ -22,7 +22,7 @@ class GameSettings {
 
    static BufferedWriter gameLog = logGame ? makeLogFile("galconset-" + formatDate(new Date())) : null;
    static Player p1 = new ValueCapture();
-   static Player p2 = new TheGeneral(Color.PINK);
+   static Player p2 = new DistanceValueDefenderAI();
    static Player [] players = {p1, p2};
    
    static final int[] DIMENSIONS = {1000, 1000, 1000};

@@ -15,9 +15,9 @@ import ais.cody.psuedoSpace.PsuedoGalaxy;
 public class TheGeneral extends Player {
 	private static final double FUTURE_COEFFICIENT = 2;
 	private static final double DISTANCE_COEFFICIENT = .3;
-	private static final int TIME_TO_PREDICT = 1000;
-	private static final int PREDICTION_INCREMENT = 1;
-	private static final double PRODUCTION_VALUE = 100;
+	private static final int TIME_TO_PREDICT = 2000;
+	private static final int PREDICTION_INCREMENT = 10;
+	private static final double PRODUCTION_VALUE = 200;
 	private static final double SPREAD_VALUE = 1000;
 	private int turn;
 	private PsuedoGalaxy psuedoGalaxy;
@@ -41,13 +41,14 @@ public class TheGeneral extends Player {
 		  testModel(psuedoGalaxy);
 	  
       //findBestAction(psuedoGalaxy).commit();
-      
-      findBestActions(psuedoGalaxy);
-      if (potentialMoves.size() > 0) {
-    	  potentialMoves.get(0).commit();
-    	  //System.out.println("Picked move: " + potentialMoves.get(0));
-      }
-      
+
+	  if (turn % PREDICTION_INCREMENT == 0) {
+	      findBestActions(psuedoGalaxy);
+	      if (potentialMoves.size() > 0) {
+	    	  potentialMoves.get(0).commit();
+	    	  //System.out.println("Picked move: " + potentialMoves.get(0));
+	      }
+	  }
       turn++;
 	  return;
    }
@@ -126,8 +127,9 @@ public class TheGeneral extends Player {
 	  currentValue = psuedoGalaxy.health(PRODUCTION_VALUE, SPREAD_VALUE);
 
 	  for (Move potentialMove : potentialMoves) {
-		  if (potentialMove.cost < 0)
+		  if (potentialMove.cost < 0) {
 			  invalidMoves.add(potentialMove);
+		  }
 		  else {
 			  potentialMove.evaluate();
 //			  if (potentialMove.value > currentValue) {
@@ -295,7 +297,23 @@ public class TheGeneral extends Player {
 	  }
 		  
 	  return move;
-   }   
+   }
+   
+   private Move randomEnemyMove(PsuedoGalaxy psuedoGalaxy) {
+	   Move move;
+	   PsuedoGalaxy model = new PsuedoGalaxy(psuedoGalaxy);
+	   PsuedoPlanet to;
+	   move = new Move();
+	   for (PsuedoPlanet from : model.enemyPlanets()) {
+		   if (from.strength > 10) {
+			   to = model.psuedoPlanets.get((int)(Math.random() * model.psuedoPlanets.size()) + 1);
+			   move.addPsuedoAction(new PsuedoAction(from, to, (int)(Math.random()*(from.strength - 10))));
+		   }
+	   }
+	   
+	   
+	   return move;
+   }
 
    // How many units will it take to capture a planet?
    private double costOfPlanet(PsuedoGalaxy psuedoGalaxy, PsuedoPlanet target) {
